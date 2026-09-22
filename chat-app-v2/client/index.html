@@ -1,1 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ChatApp v2 - Login</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="error-toast"></div>
 
+  <div class="glass-panel" id="auth-panel">
+    <div id="login-section">
+      <h1>Welcome Back</h1>
+      <form id="login-form">
+        <input type="email" id="login-email" placeholder="Email" required>
+        <input type="password" id="login-password" placeholder="Password" required>
+        <button type="submit">Login</button>
+      </form>
+      <div class="toggle-link" id="go-to-register">Don't have an account? Sign up</div>
+    </div>
+
+    <div id="register-section" class="hidden">
+      <h1>Create Account</h1>
+      <form id="register-form">
+        <input type="text" id="reg-username" placeholder="Username" required>
+        <input type="email" id="reg-email" placeholder="Email" required>
+        <input type="password" id="reg-password" placeholder="Password" required>
+        <button type="submit">Register</button>
+      </form>
+      <div class="toggle-link" id="go-to-login">Already have an account? Login</div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

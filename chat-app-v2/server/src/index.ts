@@ -7,6 +7,7 @@ import dotenv from 'dotenv';
 import connectDB from './config/db';
 import authRoutes from './routes/auth';
 import userRoutes from './routes/users';
+import messageRoutes from './routes/messages';
 import { socketAuthMiddleware } from './socket/socketMiddleware';
 import { setupSocketHandlers } from './socket/socketHandler';
 import { ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData } from './types';
@@ -31,6 +32,7 @@ app.use(express.static(path.join(__dirname, '../../client')));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/messages', messageRoutes);
 
 io.use(socketAuthMiddleware);
 setupSocketHandlers(io);

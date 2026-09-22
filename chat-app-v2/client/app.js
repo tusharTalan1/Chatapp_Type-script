@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:3000/api';
+const API_URL = '/api';
 let socket;
 let currentUser = localStorage.getItem('username');
 
@@ -213,7 +213,7 @@ const initChat = () => {
 
   fetchUsers();
 
-  socket = io('http://localhost:3000', {
+  socket = io({
     transports: ['websocket'],
     auth: { token }
   });

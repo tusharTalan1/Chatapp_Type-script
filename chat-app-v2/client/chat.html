@@ -5,28 +5,36 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ChatApp v2 - Chat</title>
   <link rel="stylesheet" href="style.css">
-  <script src="https://cdn.socket.io/4.8.3/socket.io.min.js"></script>
+  <script src="http://localhost:3000/socket.io/socket.io.js"></script>
 </head>
 <body>
   <div id="error-toast"></div>
 
-  <div class="glass-panel chat-panel">
-    <div class="chat-header">
-      <h2>ChatApp <span id="current-room-badge"></span></h2>
-      <button id="logout-btn">Logout</button>
+  <div class="glass-panel chat-layout">
+    <div class="sidebar">
+      <h3>Public Rooms</h3>
+      <div id="global-room-item" class="user-item">
+        # global-chat
+      </div>
+
+      <h3 style="margin-top: 24px;">Direct Messages</h3>
+      <div id="users-list">
+      </div>
     </div>
+    
+    <div class="chat-main">
+      <div class="chat-header">
+        <h2>ChatApp <span id="current-room-badge"></span></h2>
+        <button id="logout-btn">Logout</button>
+      </div>
 
-    <div class="room-controls">
-      <input type="text" id="room-input" placeholder="Enter room name...">
-      <button id="join-room-btn">Join Room</button>
+      <div class="messages-container" id="messages-container"></div>
+
+      <form class="message-input-container" id="chat-form">
+        <input type="text" id="message-input" placeholder="Type a message..." required autocomplete="off">
+        <button type="submit">Send</button>
+      </form>
     </div>
-
-    <div class="messages-container" id="messages-container"></div>
-
-    <form class="message-input-container" id="chat-form">
-      <input type="text" id="message-input" placeholder="Type a message..." required autocomplete="off">
-      <button type="submit">Send</button>
-    </form>
   </div>
 
   <script src="app.js"></script>

@@ -1,7 +1,8 @@
-const API_URL = 'http://localhost:3000/api/auth';
+const API_URL = 'http://localhost:3000/api';
 let socket;
-let currentRoom = '';
 let currentUser = localStorage.getItem('username');
+
+let chatTarget = { type: null, id: null };
 
 const showError = (msg) => {
   const toast = document.getElementById('error-toast');
@@ -45,6 +46,25 @@ const initAuth = () => {
     });
   }
 
+  document.querySelectorAll('.toggle-visibility').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const toggleSpan = e.currentTarget;
+      const input = toggleSpan.previousElementSibling;
+      const eyeIcon = toggleSpan.querySelector('.eye-icon');
+      const eyeOffIcon = toggleSpan.querySelector('.eye-off-icon');
+
+      if (input.type === 'password') {
+        input.type = 'text';
+        eyeIcon.classList.add('hidden');
+        eyeOffIcon.classList.remove('hidden');
+      } else {
+        input.type = 'password';
+        eyeIcon.classList.remove('hidden');
+        eyeOffIcon.classList.add('hidden');
+      }
+    });
+  });
+
   if (loginForm) {
     loginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -52,7 +72,7 @@ const initAuth = () => {
       const password = document.getElementById('login-password').value;
 
       try {
-        const res = await fetch(`${API_URL}/login`, {
+        const res = await fetch(`${API_URL}/auth/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, password })
@@ -80,7 +100,7 @@ const initAuth = () => {
       const password = document.getElementById('reg-password').value;
 
       try {
-        const res = await fetch(`${API_URL}/register`, {
+        const res = await fetch(`${API_URL}/auth/register`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username, email, password })
@@ -99,6 +119,10 @@ const initAuth = () => {
       }
     });
   }
+};
+
+const getUniqueRoomId = (user1, user2) => {
+  return [user1, user2].sort().join('_');
 };
 
 const appendMessage = (sender, content, isSelf) => {
@@ -122,9 +146,72 @@ const appendMessage = (sender, content, isSelf) => {
   container.scrollTop = container.scrollHeight;
 };
 
+const fetchUsers = async () => {
+  try {
+    const res = await fetch(`${API_URL}/users`, {
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+    });
+    if (res.ok) {
+      const users = await res.json();
+      const list = document.getElementById('users-list');
+      list.innerHTML = '';
+      
+      users.forEach(user => {
+        const div = document.createElement('div');
+        div.className = 'user-item';
+        div.textContent = `@${user.username}`;
+        div.onclick = async () => {
+          document.querySelectorAll('.user-item').forEach(el => el.classList.remove('active'));
+          div.classList.add('active');
+          
+          chatTarget = { type: 'dm', id: user.username };
+          localStorage.setItem('lastChatUser', user.username);
+          document.getElementById('current-room-badge').textContent = `- DM with ${user.username}`;
+          const container = document.getElementById('messages-container');
+          container.innerHTML = '';
+
+          const expectedDmRoom = getUniqueRoomId(currentUser, user.username);
+          try {
+            const msgRes = await fetch(`${API_URL}/messages/${expectedDmRoom}`, {
+              headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            });
+            if (msgRes.ok) {
+              const messages = await msgRes.json();
+              messages.forEach(msg => {
+                const isSelf = msg.sender === currentUser;
+                appendMessage(msg.sender, msg.content, isSelf);
+              });
+            }
+          } catch(e) {
+            console.error("Failed to load history");
+          }
+        };
+        list.appendChild(div);
+      });
+
+      const lastChatUser = localStorage.getItem('lastChatUser');
+      if (lastChatUser === 'global_room') {
+        const globalItem = document.getElementById('global-room-item');
+        if (globalItem) globalItem.click();
+      } else if (lastChatUser) {
+        const userDivs = document.querySelectorAll('#users-list .user-item');
+        userDivs.forEach(div => {
+          if (div.textContent === `@${lastChatUser}`) {
+            div.click();
+          }
+        });
+      }
+    }
+  } catch(e) {
+    console.error("Failed to fetch users");
+  }
+}
+
 const initChat = () => {
   const token = localStorage.getItem('token');
   if (!token) return;
+
+  fetchUsers();
 
   socket = io('http://localhost:3000', {
     transports: ['websocket'],
@@ -145,12 +232,54 @@ const initChat = () => {
   });
 
   socket.on('message', (data) => {
-    const isSelf = data.sender === currentUser;
-    appendMessage(data.sender, data.content, isSelf);
+    let shouldDisplay = false;
+    
+    if (chatTarget.type === 'room' && data.room === chatTarget.id) {
+      shouldDisplay = true;
+    } else if (chatTarget.type === 'dm') {
+      const expectedDmRoom = getUniqueRoomId(currentUser, chatTarget.id);
+      if (data.room === expectedDmRoom) {
+        shouldDisplay = true;
+      }
+    }
+
+    if (shouldDisplay) {
+      const isSelf = data.sender === currentUser;
+      appendMessage(data.sender, data.content, isSelf);
+    }
   });
 
-  const joinBtn = document.getElementById('join-room-btn');
-  const roomInput = document.getElementById('room-input');
+  const globalRoomItem = document.getElementById('global-room-item');
+  if (globalRoomItem) {
+    globalRoomItem.addEventListener('click', async () => {
+      document.querySelectorAll('.user-item').forEach(el => el.classList.remove('active'));
+      globalRoomItem.classList.add('active');
+      
+      chatTarget = { type: 'room', id: 'global' };
+      localStorage.setItem('lastChatUser', 'global_room');
+      document.getElementById('current-room-badge').textContent = `- Global Chat`;
+      const container = document.getElementById('messages-container');
+      container.innerHTML = '';
+
+      socket.emit('joinRoom', 'global');
+
+      try {
+        const msgRes = await fetch(`${API_URL}/messages/global`, {
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+        });
+        if (msgRes.ok) {
+          const messages = await msgRes.json();
+          messages.forEach(msg => {
+            const isSelf = msg.sender === currentUser;
+            appendMessage(msg.sender, msg.content, isSelf);
+          });
+        }
+      } catch(e) {
+        console.error("Failed to load global history");
+      }
+    });
+  }
+
   const chatForm = document.getElementById('chat-form');
   const messageInput = document.getElementById('message-input');
   const roomBadge = document.getElementById('current-room-badge');
@@ -165,28 +294,19 @@ const initChat = () => {
     });
   }
 
-  if (joinBtn && roomInput) {
-    joinBtn.addEventListener('click', () => {
-      const room = roomInput.value.trim();
-      if (room) {
-        currentRoom = room;
-        socket.emit('joinRoom', room);
-        roomBadge.textContent = `- ${room}`;
-        document.getElementById('messages-container').innerHTML = '';
-        roomInput.value = '';
-      }
-    });
-  }
-
   if (chatForm && messageInput) {
     chatForm.addEventListener('submit', (e) => {
       e.preventDefault();
       const content = messageInput.value.trim();
-      if (content && currentRoom) {
-        socket.emit('sendMessage', { room: currentRoom, content });
+      if (content && chatTarget.id) {
+        if (chatTarget.type === 'room') {
+          socket.emit('sendMessage', { room: chatTarget.id, content });
+        } else if (chatTarget.type === 'dm') {
+          socket.emit('sendDirectMessage', { toUsername: chatTarget.id, content });
+        }
         messageInput.value = '';
-      } else if (!currentRoom) {
-        showError('Please join a room first');
+      } else if (!chatTarget.id) {
+        showError('Please join a room or select a user first');
       }
     });
   }

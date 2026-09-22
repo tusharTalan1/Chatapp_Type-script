@@ -4,7 +4,7 @@
   "main": "src/index.ts",
   "scripts": {
     "start": "tsx src/index.ts",
-    "dev": "tsx watch src/index.ts"
+    "dev": "nodemon --exec tsx src/index.ts"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",

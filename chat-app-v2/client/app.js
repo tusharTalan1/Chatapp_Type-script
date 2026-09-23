@@ -55,12 +55,12 @@ const initAuth = () => {
 
       if (input.type === 'password') {
         input.type = 'text';
-        eyeIcon.classList.add('hidden');
-        eyeOffIcon.classList.remove('hidden');
-      } else {
-        input.type = 'password';
         eyeIcon.classList.remove('hidden');
         eyeOffIcon.classList.add('hidden');
+      } else {
+        input.type = 'password';
+        eyeIcon.classList.add('hidden');
+        eyeOffIcon.classList.remove('hidden');
       }
     });
   });

@@ -24,8 +24,12 @@ router.post('/register', async (req: Request, res: Response): Promise<void>=>{
 
     await newUser.save();
     res.status(201).json({ message: 'User registered successfully' });
-  } catch (error) {
-    res.status(500).json({ error: 'Server error' });
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      res.status(500).json({ error: `Server error: ${error.message}` });
+    } else {
+      res.status(500).json({ error: 'An unknown server error occurred' });
+    }
   }
 });
 
@@ -48,8 +52,12 @@ router.post('/login', async (req: Request, res: Response): Promise<void>=>{
     const token = jwt.sign(payload, process.env.JWT_SECRET as string, { expiresIn: '1h' });
 
     res.json({ token, username: user.username });
-  } catch (error) {
-    res.status(500).json({ error: 'Server error' });
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      res.status(500).json({ error: `Server error: ${error.message}` });
+    } else {
+      res.status(500).json({ error: 'An unknown server error occurred' });
+    }
   }
 });
 

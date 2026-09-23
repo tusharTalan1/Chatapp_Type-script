@@ -14,8 +14,12 @@ export const protect = (req: AuthRequest, res: Response, next: NextFunction): vo
       const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as IJwtPayload;
       req.user = decoded;
       next();
-    } catch (error) {
-      res.status(401).json({ error: 'Not authorized, token failed' });
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        res.status(401).json({ error: `Not authorized, token failed: ${error.message}` });
+      } else {
+        res.status(401).json({ error: 'Not authorized, token failed' });
+      }
     }
   }
 
